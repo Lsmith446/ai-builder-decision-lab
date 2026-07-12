@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
 import { Copy, ThumbsDown, ThumbsUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -104,9 +105,12 @@ export function OutputScreen({
               const [first, ...rest] = node;
               return [stripPrefix(first), ...rest];
             }
-            if (node && typeof node === "object" && "props" in (node as object)) {
-              const el = node as React.ReactElement;
-              return { ...el, props: { ...el.props, children: stripPrefix(el.props.children) } };
+            if (node && typeof node === "object" && "props" in node) {
+              const el = node as React.ReactElement<{ children?: React.ReactNode }>;
+              return React.cloneElement(el, {
+                ...el.props,
+                children: stripPrefix(el.props.children)
+              });
             }
             return node;
           };
