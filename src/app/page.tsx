@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { RotateCcw } from "lucide-react";
 import { GhostButton } from "@/components/GhostButton";
@@ -9,7 +9,6 @@ import { InputScreen } from "@/components/screens/InputScreen";
 import { LoadingScreen } from "@/components/screens/LoadingScreen";
 import { OutputScreen } from "@/components/screens/OutputScreen";
 import { QuestionsScreen } from "@/components/screens/QuestionsScreen";
-import { generateFramework } from "@/lib/generateFramework";
 import type { Answers, AppPhase, Feedback, OrbState } from "@/lib/types";
 
 const INITIAL_ANSWERS: Answers = {
@@ -19,15 +18,14 @@ const INITIAL_ANSWERS: Answers = {
   stakesLevel: null,
 };
 
-const LOADING_DURATION_MS = 2000;
-
 export default function Home() {
   const [phase, setPhase] = useState<AppPhase>("input");
   const [feature, setFeature] = useState("");
   const [answers, setAnswers] = useState<Answers>(INITIAL_ANSWERS);
   const [revealedQ, setRevealedQ] = useState(0);
-  const [feedback, setFeedback] = useState<Feedback>(null);
+  const [feedback, setFeedback] = useState<string | null>(null); //  Correct
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
+  const [framework, setFramework] = useState("");
 
   const riskBias =
     answers.costAsymmetry === "fp" ? -1 : answers.costAsymmetry === "fn" ? 1 : 0;
@@ -48,11 +46,6 @@ export default function Home() {
         ? "False Negative"
         : null;
 
-  const framework = useMemo(
-    () => (phase === "output" ? generateFramework(feature, answers) : ""),
-    [phase, feature, answers],
-  );
-
   const canAdvanceQ = useCallback(
     (q: number) => {
       if (q === 0) return answers.errorConsequence.trim().length > 0;
@@ -64,14 +57,40 @@ export default function Home() {
     [answers],
   );
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (revealedQ < 3) {
       setRevealedQ((q) => q + 1);
       return;
     }
-
+    
     setPhase("loading");
-    window.setTimeout(() => setPhase("output"), LOADING_DURATION_MS);
+    
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feature, answers }),
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate framework.");
+      }
+
+      // Safely unpack the framework data text if it is nested
+      if (data.framework && typeof data.framework === 'object') {
+        setFramework(data.framework.text || JSON.stringify(data.framework));
+      } else {
+        setFramework(data.framework || "No framework generated.");
+      }
+
+      setPhase("output");
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong generating your framework. Please try again.");
+      setPhase("questions");
+    }
   };
 
   const handleCopy = async () => {

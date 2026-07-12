@@ -1,68 +1,54 @@
 import type { Answers } from "./types";
 
-/**
- * Placeholder framework generator — swap this for a Gemini API call later.
- * The API route at `src/app/api/generate/route.ts` can call Google AI Studio
- * and return structured framework text from the user's inputs.
- */
-export function generateFramework(feature: string, answers: Answers): string {
+export async function generateFramework(feature: string, answers: Answers): Promise<string> {
   const asymLabel = answers.costAsymmetry === "fp" ? "False Positive" : "False Negative";
-  const asymOpp = answers.costAsymmetry === "fp" ? "false negatives" : "false positives";
-  const hitlList =
-    answers.hitl.length > 0 ? answers.hitl : ["No explicit human review defined"];
   const stakes = answers.stakesLevel ?? "medium";
-  const errorRate = { low: "< 15%", medium: "< 5%", high: "< 1%", critical: "< 0.1%" }[stakes];
-  const threshold =
-    answers.costAsymmetry === "fp"
-      ? "High (≥ 0.85) before triggering action"
-      : "Lower (≥ 0.65) acceptable — missing cases is the greater harm";
-  const reeval = new Date(Date.now() + 90 * 86400000).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
-  const today = new Date().toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const hitlList = answers.hitl.length > 0 ? answers.hitl : ["No explicit human review defined"];
 
-  const hitlNote =
-    answers.hitl.length > 0 && answers.hitl[0] !== "No human review needed"
-      ? "  ☐ Build or spec the queue UI for human reviewers\n"
-      : "";
-  const redTeam =
-    stakes === "critical" || stakes === "high"
-      ? "  ☐ Red-team test for adversarial and edge-case inputs\n"
-      : "";
+  const prompt = `You are a senior AI product manager writing an evaluation framework for a new AI feature. Be specific and concrete — no generic filler.
 
-  return `AI FEATURE EVALUATION FRAMEWORK
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE: ${feature}
 
-FEATURE SUMMARY
-${feature}
+CONTEXT FROM THE PM'S ANSWERS:
+- Consequence of error: ${answers.errorConsequence || "Not specified"}
+- Dominant error to minimize: ${asymLabel}
+- Stakes level: ${stakes}
+- Human-in-the-loop requirements: ${hitlList.join(", ")}
 
-ERROR TOLERANCE PROFILE
-Consequence of error:  ${answers.errorConsequence || "Not specified"}
-Acceptable error rate: ${errorRate}
-Stakes level:          ${stakes.toUpperCase()}
+Write a structured evaluation framework with these exact sections:
+1. FEATURE SUMMARY (one sentence)
+2. ERROR TOLERANCE PROFILE (interpret the stakes and consequence into a concrete acceptable error rate)
+3. RISK ASYMMETRY VERDICT (explain the tradeoff being made and why, in plain language)
+4. HUMAN-IN-THE-LOOP REQUIREMENTS (concrete, actionable)
+5. EVALUATION CHECKLIST (5-7 specific checklist items a real team would use before shipping)
 
-RISK ASYMMETRY VERDICT
-Dominant error to minimize: ${asymLabel}
-Strategy: Bias the model to reduce ${asymLabel.toLowerCase()}s.
-Accept more ${asymOpp} as the explicit cost of this asymmetry.
-Confidence threshold: ${threshold}
+Keep it tight and usable — this is a working doc, not an essay.`;
 
-HUMAN-IN-THE-LOOP REQUIREMENTS
-${hitlList.map((h) => `  · ${h}`).join("\n")}
+  const response = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": process.env.GEMINI_API_KEY ?? "",
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    }
+  );
 
-EVALUATION CHECKLIST
-${redTeam}  ☐ Establish baseline metrics before deployment
-  ☐ Track ${asymLabel.toLowerCase()} rate separately from overall accuracy
-  ☐ Define a rollback threshold — what rate triggers an incident?
-  ☐ Document who reviews flagged cases and within what SLA
-  ☐ Schedule re-evaluation: ${reeval}
-${hitlNote}  ☐ Log model confidence scores on every decision
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} ${errText}`);
+  }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Generated ${today} · AI Builder Decision Lab`;
+  const data = await response.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!text) {
+    throw new Error("Gemini returned no usable content.");
+  }
+
+  return text;
 }
