@@ -44,7 +44,9 @@ Keep it tight and usable — this is a working doc, not an essay.`;
   }
 
   const data = await response.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = data?.candidates?.[0]?.content?.parts
+  ?.find((p: { text?: string }) => typeof p.text === "string" && p.text.length > 0)
+  ?.text;
 
   if (!text) {
     throw new Error("Gemini returned no usable content.");

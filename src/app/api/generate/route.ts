@@ -16,63 +16,78 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "API key setup missing on server." }, { status: 500 });
+      return NextResponse.json({ error: "API key not configured on server." }, { status: 500 });
     }
 
-    // Build the expert prompt matching your design system's tone
-    const systemPrompt = `
-      You are an expert AI Product Strategy consultant. Your goal is to turn a rough AI feature idea into a structured evaluation framework.
-      
-      User's AI Feature Idea: "${body.feature}"
-      
-      Context from their choices:
-      - Primary Error Consequence: ${body.answers.q1 || 'Not specified'}
-      - Cost Asymmetry Stance: ${body.answers.q2 || 'Not specified'}
-      - Human-In-The-Loop Placement: ${body.answers.q3 || 'Not specified'}
-      - Risk/Stakes Level: ${body.answers.q4 || 'Not specified'}
+    const { feature, answers } = body;
 
-      Generate a highly professional, structured evaluation framework formatted cleanly in Markdown. 
-      Use clear headings, bullet points, and data sections. Provide:
-      1. Executive Risk Verdict (A concise evaluation matching the tone of Approachable Rigor).
-      2. Error Tolerance Analysis (Breakdown of acceptable vs. unacceptable failure patterns).
-      3. Risk Asymmetry Playbook (Clear tactical actions handling False Positives vs. False Negatives based on their answers).
-      4. Human-In-The-Loop Operational Guardrails (Exactly where, why, and how a human reviews the system artifact).
-      
-      Tone: Confident, insightful, and practical. Do not use generic filler. Make it feel like a polished, exportable artifact a PM would hand to an engineering lead.
-    `;
+    const asymLabel = answers.costAsymmetry === "fp" ? "False Positive" : "False Negative";
+    const stakes = answers.stakesLevel ?? "medium";
+    const hitlList = answers.hitl.length > 0 ? answers.hitl : ["No explicit human review defined"];
 
-    // Direct HTTP fetch to the free Google AI Studio endpoint
+    const prompt = `You are an expert AI Product Strategy consultant. Turn this AI feature idea into a structured evaluation framework. Be specific and concrete — no generic filler.
+
+FEATURE: ${feature}
+
+CONTEXT:
+- Consequence of error: ${answers.errorConsequence || "Not specified"}
+- Dominant error to minimize: ${asymLabel}
+- Stakes level: ${stakes}
+- Human-in-the-loop requirements: ${hitlList.join(", ")}
+
+Generate a structured evaluation framework with these sections:
+1. EXECUTIVE RISK VERDICT (2-3 sentences, plain language)
+2. ERROR TOLERANCE ANALYSIS (acceptable vs unacceptable failure patterns, with concrete thresholds)
+3. RISK ASYMMETRY PLAYBOOK (tactical actions for handling ${asymLabel}s specifically)
+4. HUMAN-IN-THE-LOOP GUARDRAILS (exactly where, why, and how a human reviews this system)
+5. EVALUATION CHECKLIST (5-7 specific items a real team would verify before shipping)
+
+Tone: Confident, insightful, practical. Make it feel like a polished artifact a PM would hand to an engineering lead.`;
+
     const response = await fetch(
-      `https://googleapis.com{apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: systemPrompt }] }]
-        })
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
       }
     );
 
     const data = await response.json();
 
     if (!response.ok) {
+      console.error("Gemini error:", data);
       return NextResponse.json(
-        { error: data.error?.message || "Gemini processing failed" },
+        { error: data.error?.message || "Gemini API call failed." },
         { status: response.status }
       );
     }
 
-    // Safely pull the generated markdown text string out of Gemini's nested response payload
-    const frameworkText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Failed to parse framework.";
+    const frameworkText = data.candidates?.[0]?.content?.parts
+      ?.find((p: { text?: string }) => typeof p.text === "string" && p.text.length > 0)
+      ?.text;
 
-    // Return the response matching your frontend's layout expectations perfectly
+    if (!frameworkText) {
+      console.error("Unexpected Gemini response shape:", JSON.stringify(data));
+      return NextResponse.json(
+        { error: "Gemini returned no usable content." },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ framework: frameworkText });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Route error:", message);
     return NextResponse.json(
-      { error: error.message || "Failed to generate framework." },
+      { error: message || "Failed to generate framework." },
       { status: 500 }
     );
   }
 }
-
