@@ -27,7 +27,7 @@ Paste in an AI feature idea. Answer four targeted questions about error conseque
 
 Most PMs building AI features skip the evaluation design step entirely — they ship without defining what "wrong" looks like, who reviews edge cases, or how to measure trust in the model's output. This tool operationalizes that judgment into a repeatable artifact.
 
-The question bank is drawn from real evaluation-framework work: the same questions I used to improve sentiment analysis model accuracy by 25% and design human-in-the-loop review processes for a production AI consumer product.
+The question bank is drawn from real evaluation-framework work: The framework draws on the evaluation approach I used while partnering with Data Science and Behavioral Science to improve sentiment analysis accuracy by 25% and operationalize human-in-the-loop review processes for a production AI consumer product.
 
 ---
 
