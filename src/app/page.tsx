@@ -23,7 +23,7 @@ export default function Home() {
   const [feature, setFeature] = useState("");
   const [answers, setAnswers] = useState<Answers>(INITIAL_ANSWERS);
   const [revealedQ, setRevealedQ] = useState(0);
-  const [feedback, setFeedback] = useState<string | null>(null); //  Correct
+  const [feedback, setFeedback] = useState<Feedback>(null); //  Correct
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const [framework, setFramework] = useState("");
 
