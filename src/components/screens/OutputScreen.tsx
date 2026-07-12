@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Copy, ThumbsDown, ThumbsUp } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import type { Feedback } from "@/lib/types";
 
 type OutputScreenProps = {
@@ -42,9 +43,89 @@ export function OutputScreen({
       </div>
 
       <div className="rounded-card p-4 sm:p-6 md:p-8 bg-ink shadow-framework-doc">
-        <pre className="font-label text-[13px] leading-relaxed whitespace-pre-wrap break-words text-card">
-          {framework}
-        </pre>
+      <div className="prose prose-invert prose-sm max-w-none
+  prose-headings:font-display prose-headings:text-card prose-headings:font-semibold prose-headings:mt-6 prose-headings:mb-3
+  prose-h1:text-lg prose-h2:text-base prose-h3:text-sm
+  prose-p:text-card prose-p:leading-relaxed prose-p:font-body prose-p:my-2
+  prose-li:text-card prose-li:font-body prose-li:leading-relaxed prose-li:my-1
+  prose-strong:text-white prose-strong:font-semibold
+  prose-code:text-card prose-code:bg-white/10 prose-code:px-1 prose-code:rounded prose-code:text-xs
+  prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10 prose-pre:text-card prose-pre:text-xs prose-pre:leading-relaxed prose-pre:overflow-x-auto prose-pre:whitespace-pre-wrap
+  prose-hr:border-white/20
+  [&_table]:w-full [&_table]:border-collapse [&_table]:text-xs [&_table]:text-card
+  [&_thead]:border-b [&_thead]:border-white/20
+  [&_th]:text-white [&_th]:font-semibold [&_th]:py-2 [&_th]:px-3 [&_th]:text-left [&_th]:whitespace-normal [&_th]:break-words [&_th]:align-top
+  [&_td]:py-2 [&_td]:px-3 [&_td]:border-t [&_td]:border-white/10 [&_td]:whitespace-normal [&_td]:break-words [&_td]:align-top [&_td]:text-card
+  [&_tr]:border-b [&_tr]:border-white/5
+  [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+  <ReactMarkdown
+    components={{
+      table: ({ children }) => (
+        <div className="w-full overflow-x-auto my-4 rounded-lg">
+          <table className="border-collapse text-xs" style={{ width: "100%", minWidth: "100%" }}>
+            {children}
+          </table>
+        </div>
+      ),
+      th: ({ children }) => (
+        <th className="text-white font-semibold py-2 px-3 text-left border-b border-white/20 align-top"
+          style={{ whiteSpace: "normal", wordBreak: "break-word", minWidth: "80px" }}>
+          {children}
+        </th>
+      ),
+      td: ({ children }) => (
+        <td className="text-card py-2 px-3 border-t border-white/10 align-top"
+          style={{ whiteSpace: "normal", wordBreak: "break-word", minWidth: "80px" }}>
+          {children}
+        </td>
+      ),
+      li: ({ children }) => {
+        const extractText = (node: React.ReactNode): string => {
+          if (typeof node === "string") return node;
+          if (Array.isArray(node)) return node.map(extractText).join("");
+          if (node && typeof node === "object" && "props" in (node as object)) {
+            return extractText((node as React.ReactElement).props.children);
+          }
+          return "";
+        };
+
+        const rawText = extractText(children);
+        const isUnchecked = rawText.trimStart().startsWith("[ ]");
+        const isChecked = rawText.trimStart().startsWith("[x]") || rawText.trimStart().startsWith("[X]");
+
+        if (isUnchecked || isChecked) {
+          const stripPrefix = (node: React.ReactNode): React.ReactNode => {
+            if (typeof node === "string") {
+              return node.replace(/^\s*\[[ xX]\]\s*/, "");
+            }
+            if (Array.isArray(node)) {
+              const [first, ...rest] = node;
+              return [stripPrefix(first), ...rest];
+            }
+            if (node && typeof node === "object" && "props" in (node as object)) {
+              const el = node as React.ReactElement;
+              return { ...el, props: { ...el.props, children: stripPrefix(el.props.children) } };
+            }
+            return node;
+          };
+
+          return (
+            <li className="flex items-start gap-2 list-none !pl-0">
+              <span className={`mt-1 w-4 h-4 flex-shrink-0 rounded border ${
+                isChecked ? "bg-accent border-accent" : "border-white/30 bg-white/5"
+              }`} />
+              <span className="flex-1">{stripPrefix(children)}</span>
+            </li>
+          );
+        }
+
+        return <li className="ml-4">{children}</li>;
+      },
+    }}
+  >
+    {framework}
+  </ReactMarkdown>
+</div>
       </div>
 
       <div className="flex flex-wrap items-center gap-4 px-4 sm:px-6 py-4 rounded-2xl bg-card">
