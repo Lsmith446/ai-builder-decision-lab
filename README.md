@@ -1,6 +1,6 @@
 # AI Builder Decision Lab
 
-A tool that turns a rough AI feature idea into a structured, exportable evaluation framework — covering error tolerance, risk asymmetry, human-in-the-loop design, feasibility, and team requirements — in under 60 seconds.
+A tool that turns a rough AI feature idea into an engineering-ready evaluation framework - covering error tolerance, risk asymmetry, human-in-the-loop design, feasibility, and team requirements — in under 60 seconds.
 
 Built as a portfolio project to demonstrate AI product judgment, not just AI tool usage.
 
@@ -8,9 +8,17 @@ Built as a portfolio project to demonstrate AI product judgment, not just AI too
 
 ---
 
+## Screenshots
+
+| Input | Questions | Output |
+|-------|-----------|--------|
+| <img src="screenshots/input.png" width="350" /> | <img src="screenshots/questions.png" width="350" /> | <img src="screenshots/output.png" width="350" /> |
+
+---
+
 ## What It Does
 
-Paste in an AI feature idea. Answer four targeted questions about error consequences, risk asymmetry, human review requirements, and stakes level. Get back a seven-section evaluation framework that a real PM would hand to an engineering lead.
+Describe an AI feature you're considering building. Answer four targeted questions about error consequences, risk asymmetry, human review requirements, and stakeholder level. Generate a seven-section implementation-ready evaluation framework that a real PM would hand to an engineering lead.
 
 ### Output sections:
 1. Executive Risk Verdict
@@ -25,12 +33,19 @@ Paste in an AI feature idea. Answer four targeted questions about error conseque
 
 ## Why I Built This
 
-Most PMs building AI features skip the evaluation design step entirely — they ship without defining what "wrong" looks like, who reviews edge cases, or how to measure trust in the model's output. This tool operationalizes that judgment into a repeatable artifact.
+AI teams often move directly from feature ideas to implementation without explicitly defining what "wrong" looks like, who reviews edge cases, or how to measure trust in the model's output. This tool operationalizes that judgment into a repeatable artifact.
 
-The question bank is drawn from real evaluation-framework work: the same questions I used to improve sentiment analysis model accuracy by 25% and design human-in-the-loop review processes for a production AI consumer product.
+The question bank is drawn from real evaluation-framework work: The framework draws on the evaluation approach I used while partnering with Data Science and Behavioral Science to improve sentiment analysis accuracy by 25% and operationalize human-in-the-loop review processes for a production AI consumer product.
 
 ---
 
+## Design Philosophy
+
+I believe good AI products aren't defined by model quality alone; they're defined by the quality of the decisions surrounding them.
+
+This project explores the questions product teams should answer before implementation begins: what happens when the model is wrong, where humans should stay involved, and how trust should be earned over time.
+
+---
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router, TypeScript)
@@ -93,6 +108,17 @@ The four questions the tool asks are deliberately chosen — not generic:
 
 These map directly to the judgment calls that separate a well-designed AI feature from one that erodes user trust on first failure.
 
+---
+
+## Future Improvements
+
+Given additional time, I'd expand the framework to:
+
+- Recommend rollout strategies (shadow mode, phased rollout, feature flags)
+- Generate experiment hypotheses and success metrics
+- Incorporate regulatory and privacy considerations
+- Produce downloadable PRDs and risk registers
+- Learn from previous evaluations to improve recommendations over time
 ---
 
 ## About
