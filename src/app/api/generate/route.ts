@@ -123,9 +123,9 @@ Repeat for each workstream. Then add:
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Gemini error:", data);
+      console.error("Gemini error:", JSON.stringify(data));
       return NextResponse.json(
-        { error: data.error?.message || "Gemini API call failed." },
+        { error: `Gemini ${response.status}: ${data.error?.message || JSON.stringify(data)}` },
         { status: response.status }
       );
     }
